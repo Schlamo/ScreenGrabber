@@ -223,15 +223,6 @@
     <Reference Include="System.Drawing">
       <HintPath>Assets\Plugins\System.Drawing.dll</HintPath>
     </Reference>
-    <Reference Include="Zwegat">
-      <HintPath>Assets\Plugins\Zwegat.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="XML Reader.Plugins.csproj">
-      <Project>{CB2F9481-449B-CA98-31F9-1DC7C18B4048}</Project>
-      <Name>XML Reader.Plugins</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Scripts\CanvasManager.cs" />
@@ -240,6 +231,7 @@
     <Compile Include="Assets\Scripts\Paragraph.cs" />
     <Compile Include="Assets\Scripts\Slide.cs" />
     <Compile Include="Assets\Scripts\Test.cs" />
+    <Compile Include="Assets\Zip.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\slides.xml" />

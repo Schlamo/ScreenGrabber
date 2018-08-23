@@ -11,7 +11,7 @@ using System.Runtime.InteropServices;
 public class Test : MonoBehaviour
 {
     /***** user32.dll functions *****/
-    
+
     // Delegate to filter which windows to include 
     public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
@@ -78,14 +78,17 @@ public class Test : MonoBehaviour
         });
     }
 
-    private byte[] BmpToByteArray(IntPtr hWnd)
+    private Texture2D GetTextureOfWindow(IntPtr hWnd)
     {
         IntPtr hbitmap = GetHBitmapOfWindow(hWnd);
         Bitmap bmp = System.Drawing.Image.FromHbitmap(hbitmap);
+        Texture2D tex = new Texture2D(bmp.Width, bmp.Height, TextureFormat.ARGB32, false);
 
-        MemoryStream ms = new MemoryStream();
-        bmp.Save(ms, System.Drawing.Imaging.ImageFormat.Gif);
-        return ms.ToArray();
+        MemoryStream mStream = new MemoryStream();
+        UnityEngine.Debug.Log(bmp.GetPixel(500, 60));
+        bmp.Save(mStream, bmp.RawFormat);
+        tex.LoadRawTextureData(mStream.ToArray());
+        return tex;
     }
 
     #endregion
@@ -112,8 +115,8 @@ public class Test : MonoBehaviour
             foreach (IntPtr hWnd in hWndList)
             {
                 //Getting the targets window as Texture2D
-                byte[] img = BmpToByteArray(hWnd);
-                UnityEngine.Debug.Log(img);
+                Texture2D tex = GetTextureOfWindow(hWnd);
+
                 //GameObject.Find("Cube").GetComponent<Renderer>().material.mainTexture = tex;
             }
         }
