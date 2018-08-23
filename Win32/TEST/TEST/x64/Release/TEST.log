@@ -1,0 +1,9 @@
+﻿  Test.cpp
+     Bibliothek "C:\Users\Damo\Documents\Visual Studio 2015\Projects\TEST\x64\Release\TEST.lib" und Objekt "C:\Users\Damo\Documents\Visual Studio 2015\Projects\TEST\x64\Release\TEST.exp" werden erstellt.
+  Code wird generiert.
+  2 of 5 functions (40.0%) were compiled, the rest were copied from previous compilation.
+    1 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  Codegenerierung ist abgeschlossen.
+  TEST.vcxproj -> C:\Users\Damo\Documents\Visual Studio 2015\Projects\TEST\x64\Release\TEST.dll
+  TEST.vcxproj -> C:\Users\Damo\Documents\Visual Studio 2015\Projects\TEST\x64\Release\TEST.pdb (Full PDB)

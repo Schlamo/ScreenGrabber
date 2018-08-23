@@ -1,0 +1,8 @@
+﻿  Test.cpp
+c:\users\damo\documents\visual studio 2015\projects\test\test\test.cpp(5): warning C4273: "TestMultiply": Inkonsistente DLL-Bindung.
+  c:\users\damo\documents\visual studio 2015\projects\test\test\test.h(8): note: Siehe vorherige Definition von "TestMultiply"
+c:\users\damo\documents\visual studio 2015\projects\test\test\test.cpp(10): warning C4273: "TestDivide": Inkonsistente DLL-Bindung.
+  c:\users\damo\documents\visual studio 2015\projects\test\test\test.h(9): note: Siehe vorherige Definition von "TestDivide"
+     Bibliothek "c:\users\damo\documents\visual studio 2015\Projects\TEST\Debug\TEST.lib" und Objekt "c:\users\damo\documents\visual studio 2015\Projects\TEST\Debug\TEST.exp" werden erstellt.
+  TEST.vcxproj -> c:\users\damo\documents\visual studio 2015\Projects\TEST\Debug\TEST.dll
+  TEST.vcxproj -> c:\users\damo\documents\visual studio 2015\Projects\TEST\Debug\TEST.pdb (Full PDB)

@@ -1,0 +1,11 @@
+﻿  Test.cpp
+Test.cpp(5): warning C4273: "TestMultiply": Inkonsistente DLL-Bindung.
+  c:\users\damo\documents\visual studio 2015\projects\test\test\Test.h(8): note: Siehe vorherige Definition von "TestMultiply"
+Test.cpp(10): warning C4273: "TestDivide": Inkonsistente DLL-Bindung.
+  c:\users\damo\documents\visual studio 2015\projects\test\test\Test.h(9): note: Siehe vorherige Definition von "TestDivide"
+     Bibliothek "c:\users\damo\documents\visual studio 2015\Projects\TEST\Release\TEST.lib" und Objekt "c:\users\damo\documents\visual studio 2015\Projects\TEST\Release\TEST.exp" werden erstellt.
+  Code wird generiert.
+  All 2 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Codegenerierung ist abgeschlossen.
+  TEST.vcxproj -> c:\users\damo\documents\visual studio 2015\Projects\TEST\Release\TEST.dll
+  TEST.vcxproj -> c:\users\damo\documents\visual studio 2015\Projects\TEST\Release\TEST.pdb (Full PDB)
