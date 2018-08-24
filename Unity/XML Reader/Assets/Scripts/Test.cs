@@ -81,9 +81,10 @@ public class Test : MonoBehaviour
     private Texture2D GetTextureOfWindow(IntPtr hWnd)
     {
         IntPtr hbitmap = GetHBitmapOfWindow(hWnd);
-        Bitmap bmp = Image.FromHbitmap(hbitmap);
+        System.Drawing.Bitmap bmp = (Bitmap)System.Drawing.Image.FromHbitmap(hbitmap);
 
         UnityEngine.Debug.Log("Pixel-Farbe: " + bmp.GetPixel(0, 0));
+
         Texture2D tex = new Texture2D(bmp.Width, bmp.Height, TextureFormat.RGB24, false);
 
         /*** Approch 1 ***/
