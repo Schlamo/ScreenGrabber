@@ -81,13 +81,42 @@ public class Test : MonoBehaviour
     private Texture2D GetTextureOfWindow(IntPtr hWnd)
     {
         IntPtr hbitmap = GetHBitmapOfWindow(hWnd);
-        Bitmap bmp = System.Drawing.Image.FromHbitmap(hbitmap);
-        Texture2D tex = new Texture2D(bmp.Width, bmp.Height, TextureFormat.ARGB32, false);
+        Bitmap bmp = Image.FromHbitmap(hbitmap);
 
-        MemoryStream mStream = new MemoryStream();
-        UnityEngine.Debug.Log(bmp.GetPixel(500, 60));
-        bmp.Save(mStream, bmp.RawFormat);
-        tex.LoadRawTextureData(mStream.ToArray());
+        UnityEngine.Debug.Log("Pixel-Farbe: " + bmp.GetPixel(0, 0));
+        Texture2D tex = new Texture2D(bmp.Width, bmp.Height, TextureFormat.RGB24, false);
+
+        /*** Approch 1 ***/
+        
+        System.Drawing.Imaging.BitmapData bmpData = bmp.LockBits(
+            new Rectangle(new Point(), bmp.Size), 
+            System.Drawing.Imaging.ImageLockMode.ReadOnly, 
+            System.Drawing.Imaging.PixelFormat.Format24bppRgb
+        );
+
+        int size = bmpData.Stride * bmp.Height;
+        byte[] bytes = new byte[size];
+        
+        Marshal.Copy(bmpData.Scan0, bytes, 0, size);
+
+        bmp.UnlockBits(bmpData);
+        tex.LoadRawTextureData(bytes);
+        UnityEngine.Debug.Log("Bytes: " + size);
+        //*/
+
+
+        /*** Approch 2 ***
+         * causes Unity Crash
+        
+        MemoryStream ms = new MemoryStream();
+        bmp.Save(ms, System.Drawing.Imaging.ImageFormat.Jpeg);
+        Byte[] bytes = ms.GetBuffer();
+        ms.Close();
+
+        tex.LoadRawTextureData(bytes);
+        */
+
+        bmp.Dispose();
         return tex;
     }
 
@@ -115,10 +144,43 @@ public class Test : MonoBehaviour
             foreach (IntPtr hWnd in hWndList)
             {
                 //Getting the targets window as Texture2D
-                Texture2D tex = GetTextureOfWindow(hWnd);
-
-                //GameObject.Find("Cube").GetComponent<Renderer>().material.mainTexture = tex;
             }
+        }
+    }
+
+    private void Start()
+    {
+        IEnumerable<IntPtr> hWndList = FindWindowsWithText("PowerPoint");
+        const uint WM_KEYDOWN = 0x100;
+
+        foreach (IntPtr hWnd in hWndList)
+        {
+            Texture2D tex = GetTextureOfWindow(hWnd);
+
+            GameObject.Find("Cube").GetComponent<Renderer>().material.mainTexture = tex;
+        }
+
+    }
+
+    #endregion
+
+    #region Public Methods
+
+    public static void BitmapToByteArray(Bitmap bitmap)
+    {
+        ImageConverter converter = new ImageConverter();
+        byte[] arr =  (byte[])converter.ConvertTo(bitmap, typeof(byte[]));
+        UnityEngine.Debug.Log(arr);
+        //return bytedata;
+
+    }
+
+    public static byte[] ImageToByte2(Image img)
+    {
+        using (var stream = new MemoryStream())
+        {
+            img.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
+            return stream.ToArray();
         }
     }
 
