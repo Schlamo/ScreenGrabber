@@ -42,19 +42,16 @@ public class Test : MonoBehaviour
     [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hWnd, uint Msg, int wParam, int lParam);
 
 
-    /***** ScreenGrabber.dll functions *****/
+    /***** ScreenGrabDll.dll functions *****/
 
     //clips a screenshot of a window handle to the clipboard
-    [DllImport("TEST.dll", EntryPoint = "Clip")] public static extern bool Clip(IntPtr hWnd);
+    [DllImport("ScreenGrabDll.dll", EntryPoint = "Clip")] public static extern bool Clip(IntPtr hWnd);
 
     //Returns a Bitmap Handle of the passed window
-    [DllImport("TEST.dll", EntryPoint = "GetHBitmapOfWindow")] public static extern IntPtr GetHBitmapOfWindow(IntPtr hWnd);
+    [DllImport("ScreenGrabDll.dll", EntryPoint = "GetHBitmapOfWindow")] public static extern IntPtr GetHBitmapOfWindow(IntPtr hWnd);
 
-    //Returns a Windows Bitmap of the passed window
-    [DllImport("TEST.dll", EntryPoint = "GetBitmapOfWindow")] public static extern IntPtr GetBitmapOfWindow(IntPtr hWnd);
-
-    //Returns a Windows Bitmap of the passed window
-    //[DllImport("TEST.dll", EntryPoint = "DeleteBmpHandle")] public static extern bool DeleteBmpHandle(IntPtr hBmp);
+    //Returns a Win32 Bitmap of the passed window
+    [DllImport("ScreenGrabDll.dll", EntryPoint = "GetBitmapOfWindow")] public static extern IntPtr GetBitmapOfWindow(IntPtr hWnd);
 
     #endregion
 
@@ -148,11 +145,17 @@ public class Test : MonoBehaviour
         Marshal.Copy(bmpData.Scan0, bytes, 0, size);
 
         bmp.UnlockBits(bmpData);
-        tex.LoadRawTextureData(bytes);
-
-        GameObject.Find("Cube").GetComponent<Renderer>().material.mainTexture = tex;
-
-        tex.Apply();
+        try
+        {
+            tex.LoadRawTextureData(bytes);
+            GameObject.Find("Cube").GetComponent<Renderer>().material.mainTexture = tex;
+            tex.Apply();
+        }
+        catch(Exception e)
+        {
+            UnityEngine.Debug.LogWarning("Reinitialize due to Presentation Start or Screen Size Change");
+            InitializeTex();
+        }
         bmp.Dispose();
     }
 
@@ -164,8 +167,6 @@ public class Test : MonoBehaviour
 
     void Update()
     {
-        //Returns the Presentation Window of PowerPoint
-
         //Displaying the PP-Windows Content on the cube's surface
         GetTextureOfWindow(hWnd);
 
