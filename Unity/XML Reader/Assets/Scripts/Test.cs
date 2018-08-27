@@ -10,6 +10,8 @@ using System.Runtime.InteropServices;
 
 public class Test : MonoBehaviour
 {
+    #region DllImport Methods
+
     /***** user32.dll functions *****/
 
     // Delegate to filter which windows to include 
@@ -34,6 +36,10 @@ public class Test : MonoBehaviour
 
     //Returns a Windows Bitmap of the passed window
     [DllImport("TEST.dll", EntryPoint = "GetBitmapOfWindow")] public static extern IntPtr GetBitmapOfWindow(IntPtr hWnd);
+
+    #endregion
+
+
 
     #region Private Methods
 
@@ -81,18 +87,18 @@ public class Test : MonoBehaviour
     private Texture2D GetTextureOfWindow(IntPtr hWnd)
     {
         IntPtr hbitmap = GetHBitmapOfWindow(hWnd);
-        System.Drawing.Bitmap bmp = (Bitmap)System.Drawing.Image.FromHbitmap(hbitmap);
+        System.Drawing.Bitmap bmp = (System.Drawing.Bitmap)System.Drawing.Image.FromHbitmap(hbitmap);
+        
+        System.Drawing.Color c = bmp.GetPixel(1,1);
 
-        UnityEngine.Debug.Log("Pixel-Farbe: " + bmp.GetPixel(0, 0));
-
-        Texture2D tex = new Texture2D(bmp.Width, bmp.Height, TextureFormat.RGB24, false);
+        Texture2D tex = new Texture2D(bmp.Width, bmp.Height, TextureFormat.BGRA32, false);
 
         /*** Approch 1 ***/
         
         System.Drawing.Imaging.BitmapData bmpData = bmp.LockBits(
             new Rectangle(new Point(), bmp.Size), 
             System.Drawing.Imaging.ImageLockMode.ReadOnly, 
-            System.Drawing.Imaging.PixelFormat.Format24bppRgb
+            System.Drawing.Imaging.PixelFormat.Format32bppArgb
         );
 
         int size = bmpData.Stride * bmp.Height;
@@ -102,7 +108,9 @@ public class Test : MonoBehaviour
 
         bmp.UnlockBits(bmpData);
         tex.LoadRawTextureData(bytes);
-        UnityEngine.Debug.Log("Bytes: " + size);
+
+        GameObject.Find("Cube").GetComponent<Renderer>().material.mainTexture = tex;
+        tex.Apply();
         //*/
 
 
@@ -110,7 +118,7 @@ public class Test : MonoBehaviour
          * causes Unity Crash
         
         MemoryStream ms = new MemoryStream();
-        bmp.Save(ms, System.Drawing.Imaging.ImageFormat.Jpeg);
+        bmp.Save(ms, System.Drawing.Imaging.ImageFormat.*);
         Byte[] bytes = ms.GetBuffer();
         ms.Close();
 
@@ -123,14 +131,22 @@ public class Test : MonoBehaviour
 
     #endregion
 
+
+
     #region MonoBehaviour Functions 
 
     void Update()
     {
+        IEnumerable<IntPtr> hWndList = FindWindowsWithText("PowerPoint");
+
+        foreach (IntPtr hWnd in hWndList)
+        {
+            Texture2D tex = GetTextureOfWindow(hWnd);
+            //Getting the targets window as Texture2D
+        }
+
         if (Input.anyKeyDown)
         {
-            IEnumerable<IntPtr> hWndList = FindWindowsWithText("PowerPoint");
-
             const uint WM_KEYDOWN = 0x100;
 
             //Forwards
@@ -140,11 +156,6 @@ public class Test : MonoBehaviour
             {
                 //Backwards
                 key = 37;
-            }
-
-            foreach (IntPtr hWnd in hWndList)
-            {
-                //Getting the targets window as Texture2D
             }
         }
     }
@@ -156,18 +167,19 @@ public class Test : MonoBehaviour
 
         foreach (IntPtr hWnd in hWndList)
         {
-            Texture2D tex = GetTextureOfWindow(hWnd);
-
-            GameObject.Find("Cube").GetComponent<Renderer>().material.mainTexture = tex;
+            //GameObject.Find("Cube").GetComponent<Renderer>().material.mainTexture = tex;
         }
 
     }
 
     #endregion
 
+
+
     #region Public Methods
 
-    public static void BitmapToByteArray(Bitmap bitmap)
+    public static void /*byte[]*/
+        BitmapToByteArray(Bitmap bitmap)
     {
         ImageConverter converter = new ImageConverter();
         byte[] arr =  (byte[])converter.ConvertTo(bitmap, typeof(byte[]));
