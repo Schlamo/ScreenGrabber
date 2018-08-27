@@ -10,7 +10,23 @@ using System.Runtime.InteropServices;
 
 public class Test : MonoBehaviour
 {
+    #region Private Members 
+
+    private Texture2D tex;
+    private IntPtr hBmp;
+    private IntPtr hWnd;
+
+    #endregion
+
+
+
     #region DllImport Methods
+
+    /***** user32.dll functions *****/
+
+    //
+    [DllImport("Gdi32.dll")] private static extern bool DeleteObject(IntPtr handle);
+
 
     /***** user32.dll functions *****/
 
@@ -36,6 +52,9 @@ public class Test : MonoBehaviour
 
     //Returns a Windows Bitmap of the passed window
     [DllImport("TEST.dll", EntryPoint = "GetBitmapOfWindow")] public static extern IntPtr GetBitmapOfWindow(IntPtr hWnd);
+
+    //Returns a Windows Bitmap of the passed window
+    //[DllImport("TEST.dll", EntryPoint = "DeleteBmpHandle")] public static extern bool DeleteBmpHandle(IntPtr hBmp);
 
     #endregion
 
@@ -84,25 +103,47 @@ public class Test : MonoBehaviour
         });
     }
 
-    private Texture2D GetTextureOfWindow(IntPtr hWnd)
+    private IntPtr GetPresentationWindow()
     {
-        IntPtr hbitmap = GetHBitmapOfWindow(hWnd);
-        System.Drawing.Bitmap bmp = (System.Drawing.Bitmap)System.Drawing.Image.FromHbitmap(hbitmap);
-        
-        System.Drawing.Color c = bmp.GetPixel(1,1);
+        IEnumerable<IntPtr> hWndList = FindWindowsWithText("PowerPoint");
+        foreach (IntPtr hWnd in hWndList)
+        {
+            if(GetWindowText(hWnd).Contains("Pres"));
+            return hWnd;
+        }
+        return IntPtr.Zero;
+    }
 
-        Texture2D tex = new Texture2D(bmp.Width, bmp.Height, TextureFormat.BGRA32, false);
+    private void InitializeTex()
+    {
+        if(hWnd != IntPtr.Zero)
+        {
+            IntPtr hbitmap = GetHBitmapOfWindow(hWnd);
+            Bitmap bmp = Image.FromHbitmap(hbitmap);
+
+            tex = new Texture2D(bmp.Width, bmp.Height, TextureFormat.BGRA32, false);
+
+            bmp.Dispose();
+        }
+    }
+
+    private void GetTextureOfWindow(IntPtr hWnd)
+    {
+        hBmp        = GetHBitmapOfWindow(hWnd);
+        Bitmap bmp  = Image.FromHbitmap(hBmp);
+
+        DeleteObject(hWnd);
+        DeleteObject(hBmp);
 
         /*** Approch 1 ***/
-        
         System.Drawing.Imaging.BitmapData bmpData = bmp.LockBits(
             new Rectangle(new Point(), bmp.Size), 
             System.Drawing.Imaging.ImageLockMode.ReadOnly, 
             System.Drawing.Imaging.PixelFormat.Format32bppArgb
         );
 
-        int size = bmpData.Stride * bmp.Height;
-        byte[] bytes = new byte[size];
+        int size        = bmpData.Stride * bmp.Height;
+        byte[] bytes    = new byte[size];
         
         Marshal.Copy(bmpData.Scan0, bytes, 0, size);
 
@@ -110,23 +151,9 @@ public class Test : MonoBehaviour
         tex.LoadRawTextureData(bytes);
 
         GameObject.Find("Cube").GetComponent<Renderer>().material.mainTexture = tex;
+
         tex.Apply();
-        //*/
-
-
-        /*** Approch 2 ***
-         * causes Unity Crash
-        
-        MemoryStream ms = new MemoryStream();
-        bmp.Save(ms, System.Drawing.Imaging.ImageFormat.*);
-        Byte[] bytes = ms.GetBuffer();
-        ms.Close();
-
-        tex.LoadRawTextureData(bytes);
-        */
-
         bmp.Dispose();
-        return tex;
     }
 
     #endregion
@@ -137,15 +164,13 @@ public class Test : MonoBehaviour
 
     void Update()
     {
-        IEnumerable<IntPtr> hWndList = FindWindowsWithText("PowerPoint");
+        //Returns the Presentation Window of PowerPoint
 
-        foreach (IntPtr hWnd in hWndList)
-        {
-            Texture2D tex = GetTextureOfWindow(hWnd);
-            //Getting the targets window as Texture2D
-        }
+        //Displaying the PP-Windows Content on the cube's surface
+        GetTextureOfWindow(hWnd);
 
-        if (Input.anyKeyDown)
+
+        /*if (Input.anyKeyDown)
         {
             const uint WM_KEYDOWN = 0x100;
 
@@ -157,44 +182,13 @@ public class Test : MonoBehaviour
                 //Backwards
                 key = 37;
             }
-        }
+        }*/
     }
 
     private void Start()
     {
-        IEnumerable<IntPtr> hWndList = FindWindowsWithText("PowerPoint");
-        const uint WM_KEYDOWN = 0x100;
-
-        foreach (IntPtr hWnd in hWndList)
-        {
-            //GameObject.Find("Cube").GetComponent<Renderer>().material.mainTexture = tex;
-        }
-
-    }
-
-    #endregion
-
-
-
-    #region Public Methods
-
-    public static void /*byte[]*/
-        BitmapToByteArray(Bitmap bitmap)
-    {
-        ImageConverter converter = new ImageConverter();
-        byte[] arr =  (byte[])converter.ConvertTo(bitmap, typeof(byte[]));
-        UnityEngine.Debug.Log(arr);
-        //return bytedata;
-
-    }
-
-    public static byte[] ImageToByte2(Image img)
-    {
-        using (var stream = new MemoryStream())
-        {
-            img.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
-            return stream.ToArray();
-        }
+        hWnd = GetPresentationWindow();
+        InitializeTex();
     }
 
     #endregion
