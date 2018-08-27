@@ -229,8 +229,8 @@
     <Compile Include="Assets\Scripts\FileInput.cs" />
     <Compile Include="Assets\Scripts\NotesManager.cs" />
     <Compile Include="Assets\Scripts\Paragraph.cs" />
+    <Compile Include="Assets\Scripts\ScreenGrabber.cs" />
     <Compile Include="Assets\Scripts\Slide.cs" />
-    <Compile Include="Assets\Scripts\Test.cs" />
     <Compile Include="Assets\Zip.cs" />
   </ItemGroup>
   <ItemGroup>

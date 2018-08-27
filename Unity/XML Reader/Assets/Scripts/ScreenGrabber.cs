@@ -8,17 +8,25 @@ using System.IO;
 using System.Drawing;
 using System.Runtime.InteropServices;
 
-public class Test : MonoBehaviour
+public class ScreenGrabber : MonoBehaviour
 {
+
+    #region Public Members
+
+    public GameObject screen;
+    public string window;
+
+    #endregion
+
     #region Private Members 
 
     private Texture2D tex;
     private IntPtr hBmp;
     private IntPtr hWnd;
+    private int rect;
+    private bool running = false;
 
     #endregion
-
-
 
     #region DllImport Methods
 
@@ -54,8 +62,6 @@ public class Test : MonoBehaviour
     [DllImport("ScreenGrabDll.dll", EntryPoint = "GetBitmapOfWindow")] public static extern IntPtr GetBitmapOfWindow(IntPtr hWnd);
 
     #endregion
-
-
 
     #region Private Methods
 
@@ -102,10 +108,10 @@ public class Test : MonoBehaviour
 
     private IntPtr GetPresentationWindow()
     {
-        IEnumerable<IntPtr> hWndList = FindWindowsWithText("PowerPoint");
+        IEnumerable<IntPtr> hWndList = FindWindowsWithText(window);
         foreach (IntPtr hWnd in hWndList)
         {
-            if(GetWindowText(hWnd).Contains("Pres"));
+            if(GetWindowText(hWnd).Contains(window));
             return hWnd;
         }
         return IntPtr.Zero;
@@ -116,9 +122,10 @@ public class Test : MonoBehaviour
         if(hWnd != IntPtr.Zero)
         {
             IntPtr hbitmap = GetHBitmapOfWindow(hWnd);
-            Bitmap bmp = Image.FromHbitmap(hbitmap);
+            Bitmap bmp     = Image.FromHbitmap(hbitmap);
 
-            tex = new Texture2D(bmp.Width, bmp.Height, TextureFormat.BGRA32, false);
+            rect = bmp.Height * bmp.Width;
+            tex  = new Texture2D(bmp.Width, bmp.Height, TextureFormat.BGRA32, false);
 
             bmp.Dispose();
         }
@@ -126,21 +133,33 @@ public class Test : MonoBehaviour
 
     private void GetTextureOfWindow(IntPtr hWnd)
     {
+        //Get the handle of the windows bitmap via ScreenGrab.dll
         hBmp        = GetHBitmapOfWindow(hWnd);
+
+        //Get the actual bitmap from the handle via System.Drawing.dll
         Bitmap bmp  = Image.FromHbitmap(hBmp);
 
+        //Delete temporary handles 
         DeleteObject(hWnd);
         DeleteObject(hBmp);
 
-        /*** Approch 1 ***/
+        //Locks the system storage and stores some BitmapData in bmpData
         System.Drawing.Imaging.BitmapData bmpData = bmp.LockBits(
             new Rectangle(new Point(), bmp.Size), 
             System.Drawing.Imaging.ImageLockMode.ReadOnly, 
             System.Drawing.Imaging.PixelFormat.Format32bppArgb
         );
 
+        //Calculates total size of the bitmap and allocates 
         int size        = bmpData.Stride * bmp.Height;
+        int tmpRect     = bmp.Height * bmp.Width;
         byte[] bytes    = new byte[size];
+
+        if (rect != tmpRect)
+        {
+            rect = tmpRect;
+            InitializeTex();
+        }
         
         Marshal.Copy(bmpData.Scan0, bytes, 0, size);
 
@@ -153,7 +172,6 @@ public class Test : MonoBehaviour
         }
         catch(Exception e)
         {
-            UnityEngine.Debug.LogWarning("Reinitialize due to Presentation Start or Screen Size Change");
             InitializeTex();
         }
         bmp.Dispose();
@@ -161,11 +179,9 @@ public class Test : MonoBehaviour
 
     #endregion
 
-
-
     #region MonoBehaviour Functions 
 
-    void Update()
+    private void Update()
     {
         //Displaying the PP-Windows Content on the cube's surface
         GetTextureOfWindow(hWnd);
@@ -188,6 +204,12 @@ public class Test : MonoBehaviour
 
     private void Start()
     {
+        if(!screen.GetComponent<MeshRenderer>())
+        {
+            Destroy(this.gameObject);
+        }
+
+        running = true;
         hWnd = GetPresentationWindow();
         InitializeTex();
     }
