@@ -52,7 +52,7 @@ public class ScreenGrabber : MonoBehaviour
 
     /***** ScreenGrabDll.dll functions *****/
 
-    //clips a screenshot of a window handle to the clipboard
+    //clips a screenshot of the passed window to the clipboard
     [DllImport("ScreenGrabDll.dll", EntryPoint = "Clip")] public static extern bool Clip(IntPtr hWnd);
 
     //Returns a Bitmap Handle of the passed window
@@ -106,12 +106,14 @@ public class ScreenGrabber : MonoBehaviour
         });
     }
 
-    private IntPtr GetPresentationWindow()
+    private IntPtr GetWindow(string target)
     {
-        IEnumerable<IntPtr> hWndList = FindWindowsWithText(window);
+        //If multiple windows with the same name exist, only the first one will be returned
+        //The current solution is kinda stupid. Very stupid...
+        IEnumerable<IntPtr> hWndList = FindWindowsWithText(target);
         foreach (IntPtr hWnd in hWndList)
         {
-            if(GetWindowText(hWnd).Contains(window));
+            if(GetWindowText(hWnd).Contains(target));
             return hWnd;
         }
         return IntPtr.Zero;
@@ -119,9 +121,9 @@ public class ScreenGrabber : MonoBehaviour
 
     private void InitializeTex()
     {
-        if(hWnd != IntPtr.Zero)
+        if(this.hWnd != IntPtr.Zero)
         {
-            IntPtr hbitmap = GetHBitmapOfWindow(hWnd);
+            IntPtr hbitmap = GetHBitmapOfWindow(this.hWnd);
             Bitmap bmp     = Image.FromHbitmap(hbitmap);
 
             rect = bmp.Height * bmp.Width;
@@ -137,43 +139,42 @@ public class ScreenGrabber : MonoBehaviour
         hBmp        = GetHBitmapOfWindow(hWnd);
 
         //Get the actual bitmap from the handle via System.Drawing.dll
-        Bitmap bmp  = Image.FromHbitmap(hBmp);
-
-        //Delete temporary handles 
-        DeleteObject(hWnd);
+        Bitmap bmp = Image.FromHbitmap(hBmp);
+        
+        //Deletes temporary handles 
+        //DeleteObject(hWnd);
         DeleteObject(hBmp);
 
-        //Locks the system storage and stores some BitmapData in bmpData
+        //Locks the system storage and stores the BitmapData
         System.Drawing.Imaging.BitmapData bmpData = bmp.LockBits(
             new Rectangle(new Point(), bmp.Size), 
             System.Drawing.Imaging.ImageLockMode.ReadOnly, 
             System.Drawing.Imaging.PixelFormat.Format32bppArgb
         );
 
-        //Calculates total size of the bitmap and allocates 
+        //Calculates total size of the Bitmap and allocates 
         int size        = bmpData.Stride * bmp.Height;
         int tmpRect     = bmp.Height * bmp.Width;
         byte[] bytes    = new byte[size];
 
+        //Copies the data from the bitmap to the byte array and unlocks the Bitmap from system memory
+        Marshal.Copy(bmpData.Scan0, bytes, 0, size);
+        bmp.UnlockBits(bmpData);
+
+
+        //Decides whether the screen size changed or not
         if (rect != tmpRect)
         {
             rect = tmpRect;
             InitializeTex();
         }
-        
-        Marshal.Copy(bmpData.Scan0, bytes, 0, size);
 
-        bmp.UnlockBits(bmpData);
-        try
-        {
-            tex.LoadRawTextureData(bytes);
-            GameObject.Find("Cube").GetComponent<Renderer>().material.mainTexture = tex;
-            tex.Apply();
-        }
-        catch(Exception e)
-        {
-            InitializeTex();
-        }
+        //Draws the new texture on the screen
+        tex.LoadRawTextureData(bytes);
+        screen.GetComponent<MeshRenderer>().material.mainTexture = tex;
+        tex.Apply();
+
+        //Releases all resources used by this Bitmap
         bmp.Dispose();
     }
 
@@ -183,23 +184,15 @@ public class ScreenGrabber : MonoBehaviour
 
     private void Update()
     {
-        //Displaying the PP-Windows Content on the cube's surface
         GetTextureOfWindow(hWnd);
 
-
-        /*if (Input.anyKeyDown)
+        //Handles inputs and passes them to the target application
+        if (Input.anyKeyDown)
         {
             const uint WM_KEYDOWN = 0x100;
 
-            //Forwards
-            int key = 39;
-
-            if (Input.GetKeyDown(KeyCode.LeftArrow))
-            {
-                //Backwards
-                key = 37;
-            }
-        }*/
+            UnityEngine.Debug.Log(PostMessage(GetWindow("Telegram"), WM_KEYDOWN, 37, 0));
+        }
     }
 
     private void Start()
@@ -210,7 +203,8 @@ public class ScreenGrabber : MonoBehaviour
         }
 
         running = true;
-        hWnd = GetPresentationWindow();
+        this.hWnd = GetWindow(window);
+        UnityEngine.Debug.Log(this.hWnd);
         InitializeTex();
     }
 
