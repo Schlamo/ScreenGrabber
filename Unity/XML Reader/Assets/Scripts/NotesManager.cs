@@ -18,27 +18,6 @@ public class NotesManager : MonoBehaviour
     public string targetDirectory = "UnzippedPresentation";
     #endregion
 
-    #region MonoBehavior Functions
-    private void Start () {
-        this.targetDirectory = "/" + targetDirectory + "/";
-
-        if(UnzipPresentation(Application.dataPath + "/" + sourceDirectory + "/" + presentationName + ".pptx"))
-        {
-            ReadNotes(Application.dataPath + targetDirectory);
-            LogNotes();
-        }
-        else
-        {
-            Debug.LogError("Unzipping Presentation failed.");
-        }
-    }
-
-    private void OnApplicationQuit()
-    {
-        EmptyDirectory(Application.dataPath + targetDirectory);
-    }
-    #endregion
-
     #region Private Methods
     private bool AddNote(List<string> parts, int slide)
     {
@@ -169,6 +148,28 @@ public class NotesManager : MonoBehaviour
         this.notes.TryGetValue(slide, out note);
 
         return note;
+    }
+    #endregion
+
+    #region MonoBehaviour Functions
+    private void Start()
+    {
+        this.targetDirectory = "/" + targetDirectory + "/";
+
+        if (UnzipPresentation(Application.dataPath + "/" + sourceDirectory + "/" + presentationName + ".pptx"))
+        {
+            ReadNotes(Application.dataPath + targetDirectory);
+            LogNotes();
+        }
+        else
+        {
+            Debug.LogError("Unzipping Presentation failed.");
+        }
+    }
+
+    private void OnApplicationQuit()
+    {
+        EmptyDirectory(Application.dataPath + targetDirectory);
     }
     #endregion
 }

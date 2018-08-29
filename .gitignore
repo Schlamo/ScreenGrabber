@@ -2,7 +2,7 @@
 Temp
 
 #Metadata
-Library/metadata
+Library
 
 #VS Debug
 Win32/TEST/Debug
@@ -13,3 +13,8 @@ Win32/TEST/TEST/Debug
 
 #Due to the current version
 Assets/Plugins/*.unitypackage
+
+#Build
+ScreenGrabber_Data
+*.exe
+UnityPlayer.dll

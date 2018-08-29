@@ -11,60 +11,56 @@ using System.Runtime.InteropServices;
 public class ScreenGrabber : MonoBehaviour
 {
 
-    #region Public Members
-
-    public GameObject screen;
-    public string window;
-
-    #endregion
-
     #region Private Members 
-
     private Texture2D tex;
     private IntPtr hBmp;
     private IntPtr hWnd;
     private int rect;
-    private bool running = false;
+    private bool frame = false;
+    #endregion
 
+    #region Public Members
+    public GameObject screen;
+    public string     window;
     #endregion
 
     #region DllImport Methods
-
-    /***** user32.dll functions *****/
-
-    //
+    /*** Gdi32.dll functions ***/
+    //Deletes an object, freeing all system resources associated with it
     [DllImport("Gdi32.dll")] private static extern bool DeleteObject(IntPtr handle);
 
-
-    /***** user32.dll functions *****/
-
+    /*** user32.dll functions ***/
     // Delegate to filter which windows to include 
     public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr hWnd, StringBuilder strText, int maxCount);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetWindowText(IntPtr hWnd, StringBuilder strText, int maxCount);
 
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowTextLength(IntPtr hWnd);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetWindowTextLength(IntPtr hWnd);
 
-    [DllImport("user32.dll")] private static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
+    [DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
 
-    [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hWnd, uint Msg, int wParam, int lParam);
+    [DllImport("user32.dll")]
+    private static extern bool PostMessage(IntPtr hWnd, uint Msg, int wParam, int lParam);
 
 
-    /***** ScreenGrabDll.dll functions *****/
-
+    /*** ScreenGrabDll.dll functions ***/
     //clips a screenshot of the passed window to the clipboard
-    [DllImport("ScreenGrabDll.dll", EntryPoint = "Clip")] public static extern bool Clip(IntPtr hWnd);
+    [DllImport("ScreenGrabDll.dll", EntryPoint = "Clip")]
+    private static extern bool Clip(IntPtr hWnd);
 
     //Returns a Bitmap Handle of the passed window
-    [DllImport("ScreenGrabDll.dll", EntryPoint = "GetHBitmapOfWindow")] public static extern IntPtr GetHBitmapOfWindow(IntPtr hWnd);
+    [DllImport("ScreenGrabDll.dll", EntryPoint = "GetHBitmapOfWindow")]
+    private static extern IntPtr GetHBitmapOfWindow(IntPtr hWnd);
 
     //Returns a Win32 Bitmap of the passed window
-    [DllImport("ScreenGrabDll.dll", EntryPoint = "GetBitmapOfWindow")] public static extern IntPtr GetBitmapOfWindow(IntPtr hWnd);
-
+    [DllImport("ScreenGrabDll.dll", EntryPoint = "GetBitmapOfWindow")]
+    private static extern IntPtr GetBitmapOfWindow(IntPtr hWnd);
     #endregion
 
     #region Private Methods
-
     private static string GetWindowText(IntPtr hWnd)
     {
         int size = GetWindowTextLength(hWnd);
@@ -113,9 +109,10 @@ public class ScreenGrabber : MonoBehaviour
         IEnumerable<IntPtr> hWndList = FindWindowsWithText(target);
         foreach (IntPtr hWnd in hWndList)
         {
-            if(GetWindowText(hWnd).Contains(target));
-            return hWnd;
+            if(GetWindowText(hWnd).Contains(target))
+                return hWnd;
         }
+        UnityEngine.Debug.LogWarning("Window not found!");
         return IntPtr.Zero;
     }
 
@@ -177,36 +174,33 @@ public class ScreenGrabber : MonoBehaviour
         //Releases all resources used by this Bitmap
         bmp.Dispose();
     }
-
     #endregion
 
     #region MonoBehaviour Functions 
-
     private void Update()
     {
-        GetTextureOfWindow(hWnd);
+        frame = !frame;
+        if(frame)   
+            GetTextureOfWindow(hWnd);
 
         //Handles inputs and passes them to the target application
-        if (Input.anyKeyDown)
+        /*if (Input.anyKeyDown)
         {
             const uint WM_KEYDOWN = 0x100;
 
-            UnityEngine.Debug.Log(PostMessage(GetWindow("Telegram"), WM_KEYDOWN, 37, 0));
-        }
+            //Works for most windows -_-
+            UnityEngine.Debug.Log(PostMessage(GetWindow(window), WM_KEYDOWN, 65, 0));
+        }*/
     }
 
     private void Start()
     {
         if(!screen.GetComponent<MeshRenderer>())
-        {
             Destroy(this.gameObject);
-        }
 
-        running = true;
         this.hWnd = GetWindow(window);
         UnityEngine.Debug.Log(this.hWnd);
         InitializeTex();
     }
-
     #endregion
 }
