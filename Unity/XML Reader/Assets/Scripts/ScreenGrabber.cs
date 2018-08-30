@@ -8,6 +8,12 @@ using System.IO;
 using System.Drawing;
 using System.Runtime.InteropServices;
 
+struct size
+{
+    public int x;
+    public int y;
+};
+
 public class ScreenGrabber : MonoBehaviour
 {
 
@@ -22,6 +28,8 @@ public class ScreenGrabber : MonoBehaviour
     #region Public Members
     public GameObject screen;
     public string     window;
+    public int        width = 1280;
+    public int        height = 720;
     #endregion
 
     #region DllImport Methods
@@ -43,6 +51,9 @@ public class ScreenGrabber : MonoBehaviour
     private static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
 
     [DllImport("user32.dll")]
+    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
+
+    [DllImport("user32.dll")]
     private static extern bool PostMessage(IntPtr hWnd, uint Msg, int wParam, int lParam);
 
 
@@ -58,6 +69,9 @@ public class ScreenGrabber : MonoBehaviour
     //Returns a Win32 Bitmap of the passed window
     [DllImport("ScreenGrabDll.dll", EntryPoint = "GetBitmapOfWindow")]
     private static extern IntPtr GetBitmapOfWindow(IntPtr hWnd);
+
+    [DllImport("ScreenGrabDll.dll", EntryPoint = "GetWindowSize")]
+    private static extern size GetWindowSize(IntPtr hWnd);
     #endregion
 
     #region Private Methods
@@ -167,9 +181,16 @@ public class ScreenGrabber : MonoBehaviour
         }
 
         //Draws the new texture on the screen
-        tex.LoadRawTextureData(bytes);
-        screen.GetComponent<MeshRenderer>().material.mainTexture = tex;
-        tex.Apply();
+        try
+        {
+            tex.LoadRawTextureData(bytes);
+            screen.GetComponent<MeshRenderer>().material.mainTexture = tex;
+            tex.Apply();
+        }
+        catch(Exception e)
+        {
+            InitializeTex();
+        }
 
         //Releases all resources used by this Bitmap
         bmp.Dispose();
@@ -179,8 +200,9 @@ public class ScreenGrabber : MonoBehaviour
     #region MonoBehaviour Functions 
     private void Update()
     {
+        //Dumb method to reduce CPU Workload
         frame = !frame;
-        if(frame)   
+        if (frame)
             GetTextureOfWindow(hWnd);
 
         //Handles inputs and passes them to the target application
@@ -199,7 +221,10 @@ public class ScreenGrabber : MonoBehaviour
             Destroy(this.gameObject);
 
         this.hWnd = GetWindow(window);
-        UnityEngine.Debug.Log(this.hWnd);
+
+        const uint SWP_NOMOVE = 0x0002;
+        UnityEngine.Debug.Log(SetWindowPos(this.hWnd, (IntPtr)0, 0, 0, this.width, this.height, SWP_NOMOVE));
+
         InitializeTex();
     }
     #endregion
