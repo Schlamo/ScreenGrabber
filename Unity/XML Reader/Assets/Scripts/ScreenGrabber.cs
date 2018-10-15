@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using System.Text;
-using System.Diagnostics;
-using System.IO;
 using System.Drawing;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 struct size
@@ -16,20 +14,31 @@ struct size
 
 public class ScreenGrabber : MonoBehaviour
 {
-
-    #region Private Members 
+        #region Private Members 
     private Texture2D tex;
     private IntPtr hBmp;
     private IntPtr hWnd;
     private int rect;
-    private bool frame = false;
+    private int frame = 0;
+    private int framesPerFrame = 3;
+
+    private int opt_framesPerFrame = 1;
+    private int opt_oldHash = 0;
+    private int opt_hash = 0;
+    private float opt_trySlow = 2.0f;
+    public  float opt_timer = 0.0f;
+
+
+    private float[] dTimes;
+    private int dCounter = 0;
     #endregion
 
     #region Public Members
     public GameObject screen;
-    public string     window;
-    public int        width = 1280;
-    public int        height = 720;
+    public string window;
+    public int width = 1280;
+    public int height = 720;
+    public int minFramerate = 60;
     #endregion
 
     #region DllImport Methods
@@ -39,7 +48,7 @@ public class ScreenGrabber : MonoBehaviour
 
     /*** user32.dll functions ***/
     // Delegate to filter which windows to include 
-    public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int GetWindowText(IntPtr hWnd, StringBuilder strText, int maxCount);
@@ -66,12 +75,13 @@ public class ScreenGrabber : MonoBehaviour
     [DllImport("ScreenGrabDll.dll", EntryPoint = "GetHBitmapOfWindow")]
     private static extern IntPtr GetHBitmapOfWindow(IntPtr hWnd);
 
+    /*
     //Returns a Win32 Bitmap of the passed window
     [DllImport("ScreenGrabDll.dll", EntryPoint = "GetBitmapOfWindow")]
     private static extern IntPtr GetBitmapOfWindow(IntPtr hWnd);
 
     [DllImport("ScreenGrabDll.dll", EntryPoint = "GetWindowSize")]
-    private static extern size GetWindowSize(IntPtr hWnd);
+    private static extern size GetWindowSize(IntPtr hWnd);*/
     #endregion
 
     #region Private Methods
@@ -123,7 +133,7 @@ public class ScreenGrabber : MonoBehaviour
         IEnumerable<IntPtr> hWndList = FindWindowsWithText(target);
         foreach (IntPtr hWnd in hWndList)
         {
-            if(GetWindowText(hWnd).Contains(target))
+            if (GetWindowText(hWnd).Contains(target))
                 return hWnd;
         }
         UnityEngine.Debug.LogWarning("Window not found!");
@@ -132,14 +142,14 @@ public class ScreenGrabber : MonoBehaviour
 
     private void InitializeTex()
     {
-        if(this.hWnd != IntPtr.Zero)
+        if (this.hWnd != IntPtr.Zero)
         {
             IntPtr hbitmap = GetHBitmapOfWindow(this.hWnd);
-            Bitmap bmp     = Image.FromHbitmap(hbitmap);
+            Bitmap bmp = Image.FromHbitmap(hbitmap);
 
             rect = bmp.Height * bmp.Width;
-            tex  = new Texture2D(bmp.Width, bmp.Height, TextureFormat.BGRA32, false);
-
+            tex = new Texture2D(bmp.Width, bmp.Height, TextureFormat.BGRA32, false);
+            DeleteObject(hbitmap);
             bmp.Dispose();
         }
     }
@@ -147,39 +157,39 @@ public class ScreenGrabber : MonoBehaviour
     private void GetTextureOfWindow(IntPtr hWnd)
     {
         //Get the handle of the windows bitmap via ScreenGrab.dll
-        hBmp        = GetHBitmapOfWindow(hWnd);
+        hBmp = GetHBitmapOfWindow(hWnd);
 
         //Get the actual bitmap from the handle via System.Drawing.dll
         Bitmap bmp = Image.FromHbitmap(hBmp);
-        
-        //Deletes temporary handles 
-        //DeleteObject(hWnd);
-        DeleteObject(hBmp);
 
-        //Locks the system storage and stores the BitmapData
-        System.Drawing.Imaging.BitmapData bmpData = bmp.LockBits(
-            new Rectangle(new Point(), bmp.Size), 
-            System.Drawing.Imaging.ImageLockMode.ReadOnly, 
-            System.Drawing.Imaging.PixelFormat.Format32bppArgb
-        );
-
-        //Calculates total size of the Bitmap and allocates 
-        int size        = bmpData.Stride * bmp.Height;
-        int tmpRect     = bmp.Height * bmp.Width;
-        byte[] bytes    = new byte[size];
-
-        //Copies the data from the bitmap to the byte array and unlocks the Bitmap from system memory
-        Marshal.Copy(bmpData.Scan0, bytes, 0, size);
-        bmp.UnlockBits(bmpData);
-
+        opt_oldHash = opt_hash;
+        opt_hash = bmp.GetHashCode();
 
         //Decides whether the screen size changed or not
+        int tmpRect = bmp.Height * bmp.Width;
         if (rect != tmpRect)
         {
             rect = tmpRect;
             InitializeTex();
         }
 
+        //Locks the system storage and stores the BitmapData
+        System.Drawing.Imaging.BitmapData bmpData = bmp.LockBits(
+            new Rectangle(new Point(), bmp.Size),
+            System.Drawing.Imaging.ImageLockMode.ReadOnly,
+            System.Drawing.Imaging.PixelFormat.Format32bppArgb
+        );
+
+        //Calculates total size of the Bitmap and allocates memory
+        int size = bmpData.Stride * bmp.Height;
+        byte[] bytes = new byte[size];
+
+        //Copies the data from the bitmap to the byte array and unlocks the Bitmap from system memory
+        Marshal.Copy(bmpData.Scan0, bytes, 0, size);
+        bmp.UnlockBits(bmpData);
+
+
+        //Destroy(tex);
         //Draws the new texture on the screen
         try
         {
@@ -187,40 +197,65 @@ public class ScreenGrabber : MonoBehaviour
             screen.GetComponent<MeshRenderer>().material.mainTexture = tex;
             tex.Apply();
         }
-        catch(Exception e)
+        catch (Exception)
         {
             InitializeTex();
         }
 
         //Releases all resources used by this Bitmap
+        DeleteObject(hBmp);
         bmp.Dispose();
     }
     #endregion
-
+     
     #region MonoBehaviour Functions 
     private void Update()
     {
-        //Dumb method to reduce CPU Workload
-        frame = !frame;
-        if (frame)
-            GetTextureOfWindow(hWnd);
+        frame++;
+        float upperLimit = 1.5f;
+        float lowerLimit = 1.3f;
 
-        //Handles inputs and passes them to the target application
-        /*if (Input.anyKeyDown)
+        dTimes[dCounter] = Time.deltaTime;
+        dCounter = dCounter == minFramerate - 1 ? 0 : ++dCounter;
+
+        if (dCounter == 0 && dTimes.Sum() > upperLimit)
         {
-            const uint WM_KEYDOWN = 0x100;
+            framesPerFrame++;
+            Debug.Log("FramesPerFrame increased to " + framesPerFrame + " (" + dTimes.Sum() + ")");
+        }
+        else if (dCounter == 0 && dTimes.Sum() < lowerLimit)
+        {
+            framesPerFrame = framesPerFrame < 2 ? 1 : --framesPerFrame;
+            Debug.Log("FramesPerFrame reduced to " + framesPerFrame + " (" + dTimes.Sum() + ")");
+        }
 
-            //Works for most windows -_-
-            UnityEngine.Debug.Log(PostMessage(GetWindow(window), WM_KEYDOWN, 65, 0));
-        }*/
+        if (frame >= framesPerFrame)
+        {
+            frame = 0;
+            GetTextureOfWindow(hWnd);
+        }
+
+        if (Input.anyKeyDown || opt_hash != opt_oldHash)
+        {
+            opt_framesPerFrame = 1;
+        }
+
+        opt_timer += Time.deltaTime;
+
+        if(opt_timer >= opt_trySlow)
+        {
+            opt_timer -= opt_trySlow;
+        }
     }
 
     private void Start()
     {
-        if(!screen.GetComponent<MeshRenderer>())
+        dTimes = new float[minFramerate];
+        this.hWnd = GetWindow(window);
+
+        if (!screen.GetComponent<MeshRenderer>())
             Destroy(this.gameObject);
 
-        this.hWnd = GetWindow(window);
 
         const uint SWP_NOMOVE = 0x0002;
         UnityEngine.Debug.Log(SetWindowPos(this.hWnd, (IntPtr)0, 0, 0, this.width, this.height, SWP_NOMOVE));

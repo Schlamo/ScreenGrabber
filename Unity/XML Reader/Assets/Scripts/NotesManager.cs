@@ -41,7 +41,7 @@ public class NotesManager : MonoBehaviour
         {
             int slideNum = i + 1;
             bool insideFld = false;
-            string file = "notesSlide" + (i+1) + ".xml";
+            string file = "notesSlide" + (slideNum) + ".xml";
             try
             {
                 XmlReader reader = XmlReader.Create(directory + "ppt/notesSlides/" + file, new XmlReaderSettings());
@@ -165,6 +165,16 @@ public class NotesManager : MonoBehaviour
         {
             Debug.LogError("Unzipping Presentation failed.");
         }
+    }
+
+    private bool CheckFormat()
+    {
+        FileInfo[] files = new DirectoryInfo(sourceDirectory).GetFiles();
+
+        if (files.Length > 1 || !files[0].Name.EndsWith(".pptx"))
+            return false;
+
+        return true;
     }
 
     private void OnApplicationQuit()
